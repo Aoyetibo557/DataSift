@@ -1,103 +1,226 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useCallback, useMemo } from 'react';
+import { Typography, Row, Col, Space, message } from 'antd';
+import { 
+  DataInputSection, 
+  ColumnSelection, 
+  CleaningOptions,
+  CleaningOptionsProps, 
+  DataPreview, 
+  DataStatistics,
+  DataSiftLogo} from '../app/components';
+import {
+  parseData,
+  cleanValue,
+  downloadCSV
+} from '../app/utils/utils';
 
-export default function Home() {
+const { Title, Text, Paragraph } = Typography;
+
+type CleaningOptions = {
+  trimWhitespace: boolean;
+  removeSpecialChars: boolean;
+  standardizeCase: 'none' | 'lower' | 'upper' | 'title';
+  removeEmptyValues: boolean;
+  removeDuplicates: boolean;
+}
+
+export default function DataSiftApp() {
+
+  const [rawData, setRawData] = useState<string>('');
+  const [parsedData, setParsedData] = useState<string[]>([]);
+  const [cleanedData, setCleanedData] = useState<string[]>([]);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [isSettingsVisible, setIsSettingsVisible] = useState<boolean>(false);
+  const [cleaningOptions, setCleaningOptions] = useState<CleaningOptions>({
+    trimWhitespace: true,
+    removeSpecialChars: false,
+    standardizeCase: 'none',
+    removeEmptyValues: false,
+    removeDuplicates: false
+  });
+  const [maxRows, setMaxRows] = useState<number>(1000);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [isParsing, setIsParsing] = useState<boolean>(false);
+  const [isCleaning, setIsCleaning] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(true);
+
+  const handleReset = useCallback(() => {
+    setRawData('');
+    setParsedData([]);
+    setCleanedData([]);
+    setSelectedColumns([]);
+    setCurrentPage(1);
+    setShowPreview(true);
+    message.success('All data has been reset');
+  }, []);
+
+  // Parse data when raw data changes
+  const handleDataParse = useCallback(() => {
+    if (!rawData.trim()) {
+      setParsedData([]);
+      setCleanedData([]);
+      setSelectedColumns([]);
+      return;
+    }
+    setIsParsing(true);
+    
+    try {
+      const parsed = parseData(rawData);
+      setParsedData(parsed);
+      
+      if (parsed.length > 0) {
+        const columns = Object.keys(parsed[0]);
+        setSelectedColumns(columns);
+      }
+      
+      message.success(`Successfully parsed ${parsed.length} records`);
+    } catch (error) {
+      message.error('Failed to parse data. Please check your input format.');
+    } finally {
+      setIsParsing(false);
+    }
+  }, [rawData]);
+
+  // Clean data handler
+  const handleDataCleaning = useCallback(() => {
+    if (parsedData.length === 0) return;
+
+    setIsCleaning(true);
+    
+    try {
+      let cleaned = parsedData.map(row => {
+      const cleanedRow = {};
+      selectedColumns.forEach(col => {
+        const cleanedValue = cleanValue(row[col], cleaningOptions);
+        if (cleanedValue !== null) {
+          cleanedRow[col] = cleanedValue;
+        }
+      });
+      return cleanedRow;
+    });
+    
+    if (cleaningOptions.removeDuplicates) {
+      const seen = new Set();
+      cleaned = cleaned.filter(row => {
+        const key = JSON.stringify(row);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    
+    if (maxRows && maxRows > 0) {
+      cleaned = cleaned.slice(0, maxRows);
+    }
+    
+    setCleanedData(cleaned);
+    message.success(`Data cleaned successfully! ${cleaned.length} records ready.`);
+  } catch (error) {
+    message.error('Failed to clean data. Please check your settings.');
+  } finally {
+    setIsCleaning(false);
+  }
+  }, [parsedData, selectedColumns, cleaningOptions, maxRows]);
+
+  // Computed values
+  const availableColumns = useMemo(() => {
+    if (parsedData.length === 0) return [];
+    return Object.keys(parsedData[0]);
+  }, [parsedData]);
+
+   const sampleData = useMemo(() => {
+    const dataToUse = cleanedData.length > 0 ? cleanedData : parsedData;
+    return dataToUse.map((item, index) => ({ ...item, key: index }));
+  }, [parsedData, cleanedData]);
+
+  const dataStats = useMemo(() => {
+    const dataToUse = cleanedData.length > 0 ? cleanedData : parsedData;
+    return {
+      totalRows: dataToUse.length,
+      totalColumns: selectedColumns.length,
+      emptyValues: dataToUse.reduce((acc, row) => {
+        return acc + selectedColumns.filter(col => !row[col] || row[col] === '').length;
+      }, 0)
+    };
+  }, [parsedData, cleanedData, selectedColumns]);
+
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+   <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <DataSiftLogo />
+            <Text className="text-gray-600">Smart Data Cleaning & CSV Export Tool</Text>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Row gutter={[24, 24]}>
+          {/* Input Section */}
+            <Col xs={24} lg={12}>
+            <DataInputSection 
+              rawData={rawData}
+              setRawData={setRawData}
+              isParsing={isParsing}
+              onReset={handleReset}
+              onParseData={handleDataParse}
+            />
+          </Col>
+
+          
+          {/* Right Column - Settings & Stats */}
+          <Col xs={24} lg={12}>
+            <Space direction="vertical" className="w-full" size="large">
+              {parsedData.length > 0 && (
+                <DataStatistics dataStats={dataStats} />
+              )}
+
+              {availableColumns.length > 0 && (
+                <ColumnSelection 
+                  availableColumns={availableColumns}
+                  selectedColumns={selectedColumns}
+                  setSelectedColumns={setSelectedColumns}
+                />
+              )}
+
+              {parsedData.length > 0 && (
+                <CleaningOptions 
+                  cleaningOptions={cleaningOptions}
+                  setCleaningOptions={setCleaningOptions}
+                  maxRows={maxRows}
+                  setMaxRows={setMaxRows}
+                  onCleanData={handleDataCleaning}
+                  selectedColumns={selectedColumns}
+                  isCleaning={isCleaning}
+
+                />
+              )}
+            </Space>
+          </Col>
+        </Row>
+
+        {/* Data Preview Section */}
+        <div className="mt-6">
+          <DataPreview 
+          sampleData={sampleData}
+          selectedColumns={selectedColumns}
+          cleanedData={cleanedData}
+          parsedData={parsedData}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          showPreview={showPreview}
+          setShowPreview={setShowPreview}
+        />
+        </div>
+      </div>
+
     </div>
   );
 }
