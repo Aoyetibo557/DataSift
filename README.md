@@ -240,6 +240,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by [Your Name](https://github.com/yourusername)**
+**Made with ❤️ by [Anuoluwapo Oyetibo](https://github.com/aoyetibo557)**
 
 *DataSift - Making data cleaning simple, fast, and accessible to everyone.*
