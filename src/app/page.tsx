@@ -1,43 +1,41 @@
 "use client";
-import React, { useState, useCallback, useMemo } from 'react';
-import { Typography, Row, Col, Space, message } from 'antd';
-import { 
-  DataInputSection, 
-  ColumnSelection, 
-  CleaningOptions,
-  CleaningOptionsProps, 
-  DataPreview, 
-  DataStatistics,
-  DataSiftLogo} from '../app/components';
+import React, { useState, useCallback, useMemo } from "react";
+import { Typography, Row, Col, Space, message } from "antd";
 import {
-  parseData,
-  cleanValue,
-  downloadCSV
-} from '../app/utils/utils';
+  DataInputSection,
+  ColumnSelection,
+  CleaningOptions,
+  DataPreview,
+  DataStatistics,
+  DataSiftLogo,
+} from "../app/components";
+import { parseData, cleanValue } from "../app/utils/utils";
 
-const { Title, Text, Paragraph } = Typography;
+const { Text } = Typography;
 
-type CleaningOptions = {
+export type CleaningOptions = {
   trimWhitespace: boolean;
   removeSpecialChars: boolean;
-  standardizeCase: 'none' | 'lower' | 'upper' | 'title';
+  standardizeCase: "none" | "lower" | "upper" | "title";
   removeEmptyValues: boolean;
   removeDuplicates: boolean;
+};
+
+interface DataRow {
+  [key: string]: any;
 }
 
 export default function DataSiftApp() {
-
-  const [rawData, setRawData] = useState<string>('');
-  const [parsedData, setParsedData] = useState<string[]>([]);
-  const [cleanedData, setCleanedData] = useState<string[]>([]);
+  const [rawData, setRawData] = useState<string>("");
+  const [parsedData, setParsedData] = useState<DataRow[]>([]);
+  const [cleanedData, setCleanedData] = useState<DataRow[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  const [isSettingsVisible, setIsSettingsVisible] = useState<boolean>(false);
   const [cleaningOptions, setCleaningOptions] = useState<CleaningOptions>({
     trimWhitespace: true,
     removeSpecialChars: false,
-    standardizeCase: 'none',
+    standardizeCase: "none",
     removeEmptyValues: false,
-    removeDuplicates: false
+    removeDuplicates: false,
   });
   const [maxRows, setMaxRows] = useState<number>(1000);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -47,13 +45,13 @@ export default function DataSiftApp() {
   const [showPreview, setShowPreview] = useState<boolean>(true);
 
   const handleReset = useCallback(() => {
-    setRawData('');
+    setRawData("");
     setParsedData([]);
     setCleanedData([]);
     setSelectedColumns([]);
     setCurrentPage(1);
     setShowPreview(true);
-    message.success('All data has been reset');
+    message.success("All data has been reset");
   }, []);
 
   // Parse data when raw data changes
@@ -65,19 +63,23 @@ export default function DataSiftApp() {
       return;
     }
     setIsParsing(true);
-    
+
     try {
       const parsed = parseData(rawData);
       setParsedData(parsed);
-      
+
       if (parsed.length > 0) {
         const columns = Object.keys(parsed[0]);
         setSelectedColumns(columns);
       }
-      
+
       message.success(`Successfully parsed ${parsed.length} records`);
-    } catch (error) {
-      message.error('Failed to parse data. Please check your input format.');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      message.error(
+        `Failed to parse data. Please check your input format. ${errorMessage}`
+      );
     } finally {
       setIsParsing(false);
     }
@@ -88,40 +90,49 @@ export default function DataSiftApp() {
     if (parsedData.length === 0) return;
 
     setIsCleaning(true);
-    
+
     try {
-      let cleaned = parsedData.map(row => {
-      const cleanedRow = {};
-      selectedColumns.forEach(col => {
-        const cleanedValue = cleanValue(row[col], cleaningOptions);
-        if (cleanedValue !== null) {
-          cleanedRow[col] = cleanedValue;
-        }
+      let cleaned = parsedData.map((row) => {
+        const cleanedRow: DataRow = {};
+        selectedColumns.forEach((col) => {
+          const cleanedValue = cleanValue(
+            (row as unknown as DataRow)[col],
+            cleaningOptions
+          );
+          if (cleanedValue !== null) {
+            cleanedRow[col] = cleanedValue;
+          }
+        });
+        return cleanedRow;
       });
-      return cleanedRow;
-    });
-    
-    if (cleaningOptions.removeDuplicates) {
-      const seen = new Set();
-      cleaned = cleaned.filter(row => {
-        const key = JSON.stringify(row);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+
+      if (cleaningOptions.removeDuplicates) {
+        const seen = new Set();
+        cleaned = cleaned.filter((row) => {
+          const key = JSON.stringify(row);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
+      if (maxRows && maxRows > 0) {
+        cleaned = cleaned.slice(0, maxRows);
+      }
+
+      setCleanedData(cleaned);
+      message.success(
+        `Data cleaned successfully! ${cleaned.length} records ready.`
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      message.error(
+        `Failed to clean data. Please check your settings. ${errorMessage}`
+      );
+    } finally {
+      setIsCleaning(false);
     }
-    
-    if (maxRows && maxRows > 0) {
-      cleaned = cleaned.slice(0, maxRows);
-    }
-    
-    setCleanedData(cleaned);
-    message.success(`Data cleaned successfully! ${cleaned.length} records ready.`);
-  } catch (error) {
-    message.error('Failed to clean data. Please check your settings.');
-  } finally {
-    setIsCleaning(false);
-  }
   }, [parsedData, selectedColumns, cleaningOptions, maxRows]);
 
   // Computed values
@@ -130,31 +141,53 @@ export default function DataSiftApp() {
     return Object.keys(parsedData[0]);
   }, [parsedData]);
 
-   const sampleData = useMemo(() => {
+  // Sample data for preview, ensures the data is normalized first
+  const sampleData = useMemo(() => {
     const dataToUse = cleanedData.length > 0 ? cleanedData : parsedData;
-    return dataToUse.map((item, index) => ({ ...item, key: index }));
+    return dataToUse.map((item, index) => {
+      // Ensure item is always an object
+      const normalizedItem =
+        typeof item === "string"
+          ? { value: item }
+          : (item as Record<string, any>);
+      return { ...normalizedItem, key: index };
+    });
   }, [parsedData, cleanedData]);
 
   const dataStats = useMemo(() => {
     const dataToUse = cleanedData.length > 0 ? cleanedData : parsedData;
+
+    // Normalize all rows to objects first
+    const normalizedData = dataToUse.map((row) => {
+      if (typeof row === "string") {
+        // Convert string to object - adjust this logic based on your data format
+        return { value: row } as DataRow;
+      }
+      return row as DataRow;
+    });
+
     return {
-      totalRows: dataToUse.length,
+      totalRows: normalizedData.length,
       totalColumns: selectedColumns.length,
-      emptyValues: dataToUse.reduce((acc, row) => {
-        return acc + selectedColumns.filter(col => !row[col] || row[col] === '').length;
-      }, 0)
+      emptyValues: normalizedData.reduce((acc, row) => {
+        return (
+          acc +
+          selectedColumns.filter((col) => !row[col] || row[col] === "").length
+        );
+      }, 0),
     };
   }, [parsedData, cleanedData, selectedColumns]);
 
-
   return (
-   <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <DataSiftLogo />
-            <Text className="text-gray-600">Smart Data Cleaning & CSV Export Tool</Text>
+            <Text className="text-gray-600">
+              Smart Data Cleaning & CSV Export Tool
+            </Text>
           </div>
         </div>
       </div>
@@ -162,8 +195,8 @@ export default function DataSiftApp() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Row gutter={[24, 24]}>
           {/* Input Section */}
-            <Col xs={24} lg={12}>
-            <DataInputSection 
+          <Col xs={24} lg={12}>
+            <DataInputSection
               rawData={rawData}
               setRawData={setRawData}
               isParsing={isParsing}
@@ -172,7 +205,6 @@ export default function DataSiftApp() {
             />
           </Col>
 
-          
           {/* Right Column - Settings & Stats */}
           <Col xs={24} lg={12}>
             <Space direction="vertical" className="w-full" size="large">
@@ -181,7 +213,7 @@ export default function DataSiftApp() {
               )}
 
               {availableColumns.length > 0 && (
-                <ColumnSelection 
+                <ColumnSelection
                   availableColumns={availableColumns}
                   selectedColumns={selectedColumns}
                   setSelectedColumns={setSelectedColumns}
@@ -189,7 +221,7 @@ export default function DataSiftApp() {
               )}
 
               {parsedData.length > 0 && (
-                <CleaningOptions 
+                <CleaningOptions
                   cleaningOptions={cleaningOptions}
                   setCleaningOptions={setCleaningOptions}
                   maxRows={maxRows}
@@ -197,7 +229,6 @@ export default function DataSiftApp() {
                   onCleanData={handleDataCleaning}
                   selectedColumns={selectedColumns}
                   isCleaning={isCleaning}
-
                 />
               )}
             </Space>
@@ -206,21 +237,20 @@ export default function DataSiftApp() {
 
         {/* Data Preview Section */}
         <div className="mt-6">
-          <DataPreview 
-          sampleData={sampleData}
-          selectedColumns={selectedColumns}
-          cleanedData={cleanedData}
-          parsedData={parsedData}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          pageSize={pageSize}
-          setPageSize={setPageSize}
-          showPreview={showPreview}
-          setShowPreview={setShowPreview}
-        />
+          <DataPreview
+            sampleData={sampleData}
+            selectedColumns={selectedColumns}
+            cleanedData={cleanedData}
+            parsedData={parsedData}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+            showPreview={showPreview}
+            setShowPreview={setShowPreview}
+          />
         </div>
       </div>
-
     </div>
   );
 }

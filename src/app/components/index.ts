@@ -3,5 +3,5 @@ export * from "./cleaningOptions";
 export * from "./dataInputSection";
 export * from "./columnSection";
 export * from "./dataStatistics";
-export * from "./logo.tsx";
+export * from "./logo";
 export * from "./footer";

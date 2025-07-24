@@ -1,7 +1,10 @@
-import React from 'react';
-import { Card, Button, Space, Alert, Input, Upload, Spin } from 'antd';
-import { UploadOutlined, ClearOutlined, ReloadOutlined } from '@ant-design/icons';
-
+import React from "react";
+import { Card, Button, Space, Alert, Input, Upload, Spin } from "antd";
+import {
+  UploadOutlined,
+  ClearOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 
 const { TextArea } = Input;
 
@@ -13,49 +16,52 @@ export interface DataInputSectionProps {
   onReset: () => void;
 }
 
-export const DataInputSection: React.FC<DataInputSectionProps> = ({ rawData, setRawData, onParseData, onReset, isParsing }) => {
+export const DataInputSection: React.FC<DataInputSectionProps> = ({
+  rawData,
+  setRawData,
+  onParseData,
+  onReset,
+  isParsing,
+}) => {
   return (
-       <Card 
-      title="Input Data" 
+    <Card
+      title="Input Data"
       extra={
         <Space>
           {rawData.trim() && (
-            <Button 
+            <Button
               icon={<ReloadOutlined />}
               onClick={onReset}
-              title="Reset all data"
-            >
+              title="Reset all data">
               Reset
             </Button>
           )}
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             onClick={onParseData}
             disabled={!rawData.trim()}
-            loading={isParsing}
-          >
-            {isParsing ? 'Parsing...' : 'Parse Data'}
+            loading={isParsing}>
+            {isParsing ? "Parsing..." : "Parse Data"}
           </Button>
         </Space>
-      }
-    >
+      }>
       <Space direction="vertical" className="w-full">
         {isParsing && (
-          <Alert 
-            message="Parsing Data" 
+          <Alert
+            message="Parsing Data"
             description="Processing your data, please wait..."
-            type="info" 
-            showIcon 
+            type="info"
+            showIcon
             icon={<Spin />}
           />
         )}
-        
+
         {!isParsing && (
-          <Alert 
-            message="Supported Formats" 
+          <Alert
+            message="Supported Formats"
             description="JSON arrays, CSV, TSV, or any delimited text data"
-            type="info" 
-            showIcon 
+            type="info"
+            showIcon
           />
         )}
         <TextArea
@@ -71,18 +77,20 @@ export const DataInputSection: React.FC<DataInputSectionProps> = ({ rawData, set
             showUploadList={false}
             beforeUpload={(file) => {
               const reader = new FileReader();
-              reader.onload = (e) => setRawData(e.target.result);
+              reader.onload = (e) => {
+                if (e.target && e.target.result) {
+                  setRawData(e.target.result as string);
+                }
+              };
               reader.readAsText(file);
               return false;
-            }}
-          >
+            }}>
             <Button icon={<UploadOutlined />}>Upload File</Button>
           </Upload>
-          <Button 
-            icon={<ClearOutlined />} 
-            onClick={() => setRawData('')}
-            disabled={!rawData}
-          >
+          <Button
+            icon={<ClearOutlined />}
+            onClick={() => setRawData("")}
+            disabled={!rawData}>
             Clear
           </Button>
         </div>

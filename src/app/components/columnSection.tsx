@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, Button, Checkbox, Row, Col } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
 
 interface ColumnSelectionProps {
     availableColumns: string[];

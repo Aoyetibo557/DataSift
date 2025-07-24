@@ -1,5 +1,6 @@
-// Utility functions
-const parseData = (input) => {
+import { CleaningOptions } from "@/app/page";
+
+const parseData = (input: string) => {
   try {
     // Try to parse as JSON first
     const jsonData = JSON.parse(input);
@@ -8,7 +9,9 @@ const parseData = (input) => {
     } else if (typeof jsonData === "object") {
       return [jsonData];
     }
-  } catch (e) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    console.warn(`Failed to parse JSON: ${errorMsg}`);
     // If JSON parsing fails, try to parse as CSV-like data
     const lines = input.trim().split("\n");
     if (lines.length === 0) return [];
@@ -35,7 +38,7 @@ const parseData = (input) => {
       const values = line
         .split(delimiter)
         .map((v) => v.trim().replace(/['"]/g, ""));
-      const obj = {};
+      const obj: Record<string, string> = {}; // Add type annotation here
       headers.forEach((header, index) => {
         obj[header] = values[index] || "";
       });
@@ -47,7 +50,7 @@ const parseData = (input) => {
   return [];
 };
 
-const cleanValue = (value, cleaningOptions) => {
+const cleanValue = (value: unknown, cleaningOptions: CleaningOptions) => {
   if (value === null || value === undefined) return "";
 
   let cleaned = String(value);
@@ -78,13 +81,13 @@ const cleanValue = (value, cleaningOptions) => {
   return cleaned;
 };
 
-const downloadCSV = (data, filename = "cleaned_data.csv") => {
+const downloadCSV = (data: any, filename = "cleaned_data.csv") => {
   if (!data || data.length === 0) return;
 
   const headers = Object.keys(data[0]);
   const csvContent = [
     headers.join(","),
-    ...data.map((row) =>
+    ...data.map((row: any) =>
       headers
         .map((header) => {
           const value = row[header];

@@ -1,55 +1,55 @@
-import React from 'react';
-import { Card, Button, Space, InputNumber, Select, Switch, Typography } from 'antd';
-import { Option } from 'antd/es/mentions';
-import { ClearOutlined } from '@ant-design/icons';
-
+import React from "react";
+import {
+  Card,
+  Alert,
+  Spin,
+  Button,
+  Space,
+  InputNumber,
+  Select,
+  Switch,
+  Typography,
+} from "antd";
+import { CleaningOptions as CleaningOptionsType } from "../page";
 const { Text } = Typography;
 
 export interface CleaningOptionsProps {
-    cleaningOptions: {
-        trimWhitespace: boolean;
-        removeSpecialChars: boolean;
-        standardizeCase: 'none' | 'lower' | 'upper' | 'title';
-        removeEmptyValues: boolean;
-        removeDuplicates: boolean;
-    };
-    setCleaningOptions: (options: CleaningOptionsProps['cleaningOptions']) => void;
-    maxRows: number;
-    setMaxRows: (rows: number) => void;
-    onCleanData: () => void;
-    selectedColumns: string[];
-    isCleaning: boolean;
+  cleaningOptions: CleaningOptionsType;
+  setCleaningOptions: React.Dispatch<React.SetStateAction<CleaningOptionsType>>;
+  maxRows: number;
+  setMaxRows: React.Dispatch<React.SetStateAction<number>>;
+  onCleanData: () => void;
+  selectedColumns: string[];
+  isCleaning: boolean;
 }
 
-export const CleaningOptions: React.FC<CleaningOptionsProps> = ({ 
-  cleaningOptions, 
-  setCleaningOptions, 
-  maxRows, 
-  setMaxRows, 
-  onCleanData, 
+export const CleaningOptions: React.FC<CleaningOptionsProps> = ({
+  cleaningOptions,
+  setCleaningOptions,
+  maxRows,
+  setMaxRows,
+  onCleanData,
   selectedColumns,
-  isCleaning
+  isCleaning,
 }) => (
-  <Card 
+  <Card
     title="Data Cleaning Options"
-   extra={
+    extra={
       <Button
         type="primary"
         onClick={onCleanData}
         disabled={selectedColumns.length === 0}
-        loading={isCleaning}
-      >
-        {isCleaning ? 'Cleaning...' : 'Clean Data'}
+        loading={isCleaning}>
+        {isCleaning ? "Cleaning..." : "Clean Data"}
       </Button>
-    }
-  >
+    }>
     {isCleaning && (
       <div className="mb-4">
-        <Alert 
-          message="Cleaning Data" 
+        <Alert
+          message="Cleaning Data"
           description="Applying cleaning rules to your data, please wait..."
-          type="info" 
-          showIcon 
+          type="info"
+          showIcon
           icon={<Spin />}
         />
       </div>
@@ -59,63 +59,74 @@ export const CleaningOptions: React.FC<CleaningOptionsProps> = ({
         <Text>Trim Whitespace</Text>
         <Switch
           checked={cleaningOptions.trimWhitespace}
-          onChange={(checked) => 
-            setCleaningOptions(prev => ({ ...prev, trimWhitespace: checked }))
+          onChange={(checked) =>
+            setCleaningOptions((prev: CleaningOptionsType) => ({
+              ...prev,
+              trimWhitespace: checked,
+            }))
           }
         />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <Text>Remove Special Characters</Text>
         <Switch
           checked={cleaningOptions.removeSpecialChars}
-          onChange={(checked) => 
-            setCleaningOptions(prev => ({ ...prev, removeSpecialChars: checked }))
+          onChange={(checked) =>
+            setCleaningOptions((prev) => ({
+              ...prev,
+              removeSpecialChars: checked,
+            }))
           }
         />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <Text>Remove Duplicates</Text>
         <Switch
           checked={cleaningOptions.removeDuplicates}
-          onChange={(checked) => 
-            setCleaningOptions(prev => ({ ...prev, removeDuplicates: checked }))
+          onChange={(checked) =>
+            setCleaningOptions((prev) => ({
+              ...prev,
+              removeDuplicates: checked,
+            }))
           }
         />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <Text>Remove Empty Values</Text>
         <Switch
           checked={cleaningOptions.removeEmptyValues}
-          onChange={(checked) => 
-            setCleaningOptions(prev => ({ ...prev, removeEmptyValues: checked }))
+          onChange={(checked) =>
+            setCleaningOptions((prev) => ({
+              ...prev,
+              removeEmptyValues: checked,
+            }))
           }
         />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <Text>Case Standardization</Text>
         <Select
           value={cleaningOptions.standardizeCase}
-          onChange={(value) => 
-            setCleaningOptions(prev => ({ ...prev, standardizeCase: value }))
+          onChange={(value) =>
+            setCleaningOptions((prev) => ({ ...prev, standardizeCase: value }))
           }
-          style={{ width: 120 }}
-        >
+          style={{ width: 120 }}>
           <Select.Option value="none">None</Select.Option>
           <Select.Option value="lower">Lowercase</Select.Option>
           <Select.Option value="upper">Uppercase</Select.Option>
           <Select.Option value="title">Title Case</Select.Option>
         </Select>
       </div>
-      
+
       <div className="flex items-center justify-between">
         <Text>Max Rows (0 = unlimited)</Text>
         <InputNumber
           value={maxRows}
-          onChange={setMaxRows}
+          onChange={(value) => setMaxRows(value ?? 0)}
           min={0}
           max={100000}
           style={{ width: 120 }}
