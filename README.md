@@ -9,7 +9,10 @@
 
 A powerful, user-friendly web application for cleaning messy data and exporting it as CSV files. Built with modern web technologies for performance and accessibility.
 
-![DataSift Demo](./public/demo-screenshot.png)
+
+https://go.screenpal.com/watch/cTiTI1nIqb5
+
+[Datasift Demo](https://go.screenpal.com/watch/cTiTI1nIqb5)
 
 ## Features
 
