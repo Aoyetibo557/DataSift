@@ -14,6 +14,7 @@ export interface DataInputSectionProps {
   setRawData: (data: string) => void;
   onParseData: () => void;
   onReset: () => void;
+  dataFormat?: string;
 }
 
 export const DataInputSection: React.FC<DataInputSectionProps> = ({
@@ -22,10 +23,11 @@ export const DataInputSection: React.FC<DataInputSectionProps> = ({
   onParseData,
   onReset,
   isParsing,
+  dataFormat,
 }) => {
   return (
     <Card
-      title="Input Data"
+      title={`Input Data (${dataFormat || "Any Format"})`}
       extra={
         <Space>
           {rawData.trim() && (
@@ -59,7 +61,7 @@ export const DataInputSection: React.FC<DataInputSectionProps> = ({
         {!isParsing && (
           <Alert
             message="Supported Formats"
-            description="JSON arrays, CSV, TSV, or any delimited text data"
+            description="JSON arrays, CSV, XML, TSV, or any delimited text data"
             type="info"
             showIcon
           />

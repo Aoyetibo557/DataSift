@@ -9,7 +9,13 @@ import {
   DataStatistics,
   DataSiftLogo,
 } from "../app/components";
-import { parseData, cleanValue } from "../app/utils/utils";
+import {
+  parseData,
+  cleanValue,
+  downloadCSV,
+  flattenObject,
+  type ParsedData,
+} from "../app/utils/utils";
 
 const { Text } = Typography;
 
@@ -37,6 +43,8 @@ export default function DataSiftApp() {
     removeEmptyValues: false,
     removeDuplicates: false,
   });
+  const [dataFormat, setDataFormat] = useState<string>("");
+  const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
   const [maxRows, setMaxRows] = useState<number>(1000);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -51,6 +59,8 @@ export default function DataSiftApp() {
     setSelectedColumns([]);
     setCurrentPage(1);
     setShowPreview(true);
+    setDataFormat("");
+    setDetectedHeaders([]);
     message.success("All data has been reset");
   }, []);
 
@@ -60,20 +70,28 @@ export default function DataSiftApp() {
       setParsedData([]);
       setCleanedData([]);
       setSelectedColumns([]);
+      setDataFormat("");
+      setDetectedHeaders([]);
       return;
     }
     setIsParsing(true);
 
     try {
-      const parsed = parseData(rawData);
-      setParsedData(parsed);
+      const result = parseData(rawData); // Now returns ParsedData object
+      setParsedData(result.data);
+      setDataFormat(result.format);
+      setDetectedHeaders(result.headers || []);
 
-      if (parsed.length > 0) {
-        const columns = Object.keys(parsed[0]);
+      if (result.data.length > 0) {
+        const columns = Object.keys(result.data[0]);
         setSelectedColumns(columns);
       }
 
-      message.success(`Successfully parsed ${parsed.length} records`);
+      message.success(
+        `Successfully parsed ${
+          result.data.length
+        } records as ${result.format.toUpperCase()}`
+      );
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -138,18 +156,34 @@ export default function DataSiftApp() {
   // Computed values
   const availableColumns = useMemo(() => {
     if (parsedData.length === 0) return [];
-    return Object.keys(parsedData[0]);
+
+    // Get columns from the flattened version
+    const firstItem = parsedData[0];
+    if (typeof firstItem === "string") {
+      return ["value"];
+    } else if (typeof firstItem === "object" && firstItem !== null) {
+      const flattened = flattenObject(firstItem);
+      return Object.keys(flattened);
+    }
+
+    return ["value"];
   }, [parsedData]);
 
   // Sample data for preview, ensures the data is normalized first
   const sampleData = useMemo(() => {
     const dataToUse = cleanedData.length > 0 ? cleanedData : parsedData;
     return dataToUse.map((item, index) => {
-      // Ensure item is always an object
-      const normalizedItem =
-        typeof item === "string"
-          ? { value: item }
-          : (item as Record<string, any>);
+      // Ensures item is always an object and flatten nested objects
+      let normalizedItem: Record<string, any>;
+
+      if (typeof item === "string") {
+        normalizedItem = { value: item };
+      } else if (typeof item === "object" && item !== null) {
+        normalizedItem = flattenObject(item);
+      } else {
+        normalizedItem = { value: String(item) };
+      }
+
       return { ...normalizedItem, key: index };
     });
   }, [parsedData, cleanedData]);
@@ -157,13 +191,14 @@ export default function DataSiftApp() {
   const dataStats = useMemo(() => {
     const dataToUse = cleanedData.length > 0 ? cleanedData : parsedData;
 
-    // Normalize all rows to objects first
+    // Normalize and flatten all rows to objects first
     const normalizedData = dataToUse.map((row) => {
       if (typeof row === "string") {
-        // Convert string to object - adjust this logic based on your data format
         return { value: row } as DataRow;
+      } else if (typeof row === "object" && row !== null) {
+        return flattenObject(row) as DataRow;
       }
-      return row as DataRow;
+      return { value: String(row) } as DataRow;
     });
 
     return {
@@ -180,18 +215,6 @@ export default function DataSiftApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <DataSiftLogo />
-            <Text className="text-gray-600">
-              Smart Data Cleaning & CSV Export Tool
-            </Text>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Row gutter={[24, 24]}>
           {/* Input Section */}
@@ -202,6 +225,7 @@ export default function DataSiftApp() {
               isParsing={isParsing}
               onReset={handleReset}
               onParseData={handleDataParse}
+              dataFormat={dataFormat}
             />
           </Col>
 
