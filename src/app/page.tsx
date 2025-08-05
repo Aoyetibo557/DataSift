@@ -7,17 +7,8 @@ import {
   CleaningOptions,
   DataPreview,
   DataStatistics,
-  DataSiftLogo,
 } from "../app/components";
-import {
-  parseData,
-  cleanValue,
-  downloadCSV,
-  flattenObject,
-  type ParsedData,
-} from "../app/utils/utils";
-
-const { Text } = Typography;
+import { parseData, cleanValue, flattenObject } from "../app/utils/utils";
 
 export type CleaningOptions = {
   trimWhitespace: boolean;

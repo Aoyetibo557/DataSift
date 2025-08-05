@@ -9,7 +9,6 @@ import {
 } from "@ant-design/icons";
 
 const { Title, Paragraph, Text } = Typography;
-const { Panel } = Collapse;
 
 const FAQ = () => {
   const faqItems = [
@@ -120,14 +119,14 @@ const FAQ = () => {
       children: (
         <div>
           <Paragraph>
-            Once you've cleaned your data, exporting is simple:
+            {`Once you've cleaned your data, exporting is simple.`}
           </Paragraph>
           <ol className="ml-4 space-y-2">
             <li>
               Complete the data cleaning process using your preferred settings
             </li>
             <li>Review the cleaned data in the preview table</li>
-            <li>Click the "Download CSV" button in the Data Preview section</li>
+            <li>{`Click the "Download CSV" button in the Data Preview section`}</li>
             <li>
               Your cleaned data will be downloaded as a properly formatted CSV
               file
@@ -270,7 +269,7 @@ const FAQ = () => {
         <Card className="mt-8 text-center shadow-sm">
           <Title level={3}>Still have questions?</Title>
           <Paragraph className="text-gray-600 mb-4">
-            Can't find what you're looking for? We're here to help!
+            {`Can't find what you're looking for? We're here to help!`}
           </Paragraph>
           <Space>
             <Text type="secondary">
